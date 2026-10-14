@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Trash2 } from 'lucide-react';
+import { Trash2, ChevronLeft } from 'lucide-react';
 import { api, type QuoteSummary, type NftItem } from '../lib/api';
 import { Layout } from '../components/Layout';
 
@@ -45,9 +45,23 @@ const Cart = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-        {/* Breadcrumb */}
-        <nav className="text-xs text-[#A3968C] mb-6">
+      {/* Mobile Header conforme Carrinho de NFTsMobile.png */}
+      <div className="md:hidden flex items-center px-4 pt-6 pb-4">
+        <button
+          onClick={() => navigate({ to: '/' })}
+          aria-label="Voltar"
+          className="w-10 h-10 rounded-full bg-[#1C120C] border border-[#2E1F16] flex items-center justify-center text-[#D98236]"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <h1 className="flex-1 text-center text-lg font-bold text-white pr-10">
+          Carrinho de NFTs
+        </h1>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-2 md:py-6">
+        {/* Desktop Breadcrumb */}
+        <nav className="hidden md:block text-xs text-[#A3968C] mb-6">
           <button onClick={() => navigate({ to: '/' })} className="text-white font-bold">
             Início
           </button>
@@ -63,8 +77,8 @@ const Cart = () => {
             <div className="lg:col-span-4 h-64 bg-[#1C120C] rounded-xl" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            {/* Left Table */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+            {/* Left Items List */}
             <div className="lg:col-span-8">
               <div className="hidden md:grid grid-cols-12 text-xs font-bold text-white border-b border-[#2E1F16] pb-3 mb-4">
                 <div className="col-span-5">NFTs</div>
@@ -90,27 +104,62 @@ const Cart = () => {
                     return (
                       <div
                         key={`${item.nftId}-${item.edition}`}
-                        className="bg-[#1C120C] border border-[#2E1F16] rounded-lg p-3 grid grid-cols-1 md:grid-cols-12 items-center gap-4 text-xs"
+                        className="bg-[#1C120C] border border-[#2E1F16] rounded-2xl p-3 grid grid-cols-1 md:grid-cols-12 items-center gap-4 text-xs"
                       >
-                        <div className="md:col-span-5 flex items-center gap-3">
+                        <div className="md:col-span-5 flex items-center gap-3.5">
                           <img
                             src={item.nft.image}
                             alt={item.nft.name}
-                            className="w-14 h-14 rounded-lg object-cover shrink-0"
+                            className="w-20 h-20 md:w-14 md:h-14 rounded-xl object-cover shrink-0"
                           />
-                          <div>
-                            <p className="font-bold text-white">{item.nft.name}</p>
-                            <p className="text-[11px] text-[#A3968C]">
+                          <div className="flex-1">
+                            <p className="font-bold text-white text-sm md:text-xs">
+                              {item.nft.name}
+                            </p>
+                            <p className="hidden md:block text-[11px] text-[#A3968C]">
                               ID do token: {item.nft.tokenId}
                             </p>
+                            <p className="md:hidden text-xs text-[#A3968C] mt-0.5">
+                              Edição: {item.edition}
+                            </p>
+                            <p className="md:hidden text-sm font-bold text-[#D98236] mt-2">
+                              {lineTotal} ETH
+                            </p>
+                          </div>
+
+                          {/* Mobile Quantity Controls */}
+                          <div className="md:hidden flex items-center gap-2.5">
+                            <button
+                              onClick={() =>
+                                updateQtyMutation.mutate({
+                                  nftId: item.nftId,
+                                  quantity: item.quantity - 1,
+                                })
+                              }
+                              className="w-7 h-7 rounded-full bg-[#261810] text-[#D98236] font-bold flex items-center justify-center"
+                            >
+                              -
+                            </button>
+                            <span className="text-white font-bold text-sm">{item.quantity}</span>
+                            <button
+                              onClick={() =>
+                                updateQtyMutation.mutate({
+                                  nftId: item.nftId,
+                                  quantity: item.quantity + 1,
+                                })
+                              }
+                              className="w-7 h-7 rounded-full bg-[#261810] text-white font-bold flex items-center justify-center"
+                            >
+                              +
+                            </button>
                           </div>
                         </div>
 
-                        <div className="md:col-span-2 text-[#A3968C] font-bold">
+                        <div className="hidden md:block md:col-span-2 text-[#A3968C] font-bold">
                           {item.nft.price} ETH
                         </div>
 
-                        <div className="md:col-span-3 flex items-center gap-2.5">
+                        <div className="hidden md:flex md:col-span-3 items-center gap-2.5">
                           <button
                             onClick={() =>
                               updateQtyMutation.mutate({
@@ -138,7 +187,7 @@ const Cart = () => {
                           </button>
                         </div>
 
-                        <div className="md:col-span-2 flex items-center justify-between">
+                        <div className="hidden md:flex md:col-span-2 items-center justify-between">
                           <span className="font-bold text-[#D98236]">{lineTotal} ETH</span>
                           <button
                             aria-label="Remover item"
@@ -155,25 +204,27 @@ const Cart = () => {
               )}
             </div>
 
-            {/* Right Wallet Summary */}
-            <div className="lg:col-span-4 space-y-4">
-              <h2 className="text-sm font-bold text-white border-b border-[#2E1F16] pb-3">
+            {/* Right / Bottom Wallet Summary */}
+            <div className="lg:col-span-4 bg-[#1C120C] md:bg-transparent border border-[#2E1F16] md:border-none rounded-3xl p-5 md:p-0 space-y-4">
+              <h2 className="hidden md:block text-sm font-bold text-white border-b border-[#2E1F16] pb-3">
                 Resumo da carteira
               </h2>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-white">Código promocional</label>
-                <div className="flex">
+                <label className="hidden md:block text-[11px] font-bold text-white">
+                  Código promocional
+                </label>
+                <div className="flex bg-[#120B07] border border-[#2E1F16] rounded-full md:rounded p-1 md:p-0">
                   <input
                     type="text"
                     value={couponInput}
                     onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                     placeholder="Digite o código promocional..."
-                    className="bg-[#120B07] border border-[#D98236]/50 rounded-l px-3 py-2 text-xs text-white w-full focus:outline-none"
+                    className="bg-transparent px-4 py-2 text-xs text-white w-full focus:outline-none"
                   />
                   <button
                     onClick={() => couponMutation.mutate(couponInput)}
-                    className="bg-[#D98236] hover:bg-[#c2712b] text-[#120B07] font-bold text-xs px-4 py-2 rounded-r cursor-pointer"
+                    className="bg-[#D98236] hover:bg-[#c2712b] text-white md:text-[#120B07] font-bold text-xs px-5 py-2 rounded-full md:rounded-r cursor-pointer"
                   >
                     Aplicar
                   </button>
@@ -196,21 +247,21 @@ const Cart = () => {
               </div>
 
               <div className="space-y-2.5 text-xs pt-2">
-                <div className="flex justify-between text-[#A3968C]">
+                <div className="flex justify-between text-[#F5EFEA]">
                   <span>Subtotal</span>
-                  <span className="text-white">{quote.subtotal} ETH</span>
+                  <span>{quote.subtotal} ETH</span>
                 </div>
-                <div className="flex justify-between text-[#A3968C]">
+                <div className="flex justify-between text-[#F5EFEA]">
                   <span>Desconto do lançamento</span>
-                  <span className="text-white">(-) {quote.discount}</span>
+                  <span>(-) {quote.discount}</span>
                 </div>
-                <div className="flex justify-between text-[#A3968C]">
+                <div className="flex justify-between text-[#F5EFEA]">
                   <span>Taxa de rede</span>
-                  <span className="text-white">{quote.networkFee} ETH</span>
+                  <span>{quote.networkFee} ETH</span>
                 </div>
                 <div className="text-right text-[10px] text-[#D98236]">Taxa estimada</div>
 
-                <div className="flex justify-between text-sm font-bold pt-2 border-t border-[#2E1F16]">
+                <div className="flex justify-between text-base font-bold pt-2 border-t border-[#2E1F16]">
                   <span className="text-white">Total</span>
                   <span className="text-[#D98236]">{quote.total} ETH</span>
                 </div>
@@ -219,12 +270,12 @@ const Cart = () => {
               <button
                 disabled={quote.items.length === 0}
                 onClick={() => navigate({ to: '/payment' })}
-                className="w-full py-2.5 bg-[#D98236] hover:bg-[#c2712b] text-[#120B07] font-bold text-xs rounded transition-colors cursor-pointer disabled:opacity-40"
+                className="w-full py-3.5 md:py-2.5 bg-[#D98236] hover:bg-[#c2712b] text-[#120B07] font-bold text-sm md:text-xs rounded-full md:rounded transition-colors cursor-pointer disabled:opacity-40"
               >
                 Conectar e finalizar
               </button>
 
-              <div className="text-center">
+              <div className="hidden md:block text-center">
                 <button
                   onClick={() => navigate({ to: '/' })}
                   className="text-xs text-[#D98236] hover:underline cursor-pointer"
@@ -236,12 +287,12 @@ const Cart = () => {
           </div>
         )}
 
-        {/* Colecionadores também viram */}
-        <div className="mt-16">
+        {/* Colecionadores também viram (Desktop) */}
+        <div className="hidden md:block mt-16">
           <h3 className="text-sm font-bold text-[#D98236] border-b border-[#2E1F16] pb-3 mb-6">
             Colecionadores também viram
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-5 gap-4">
             {catalogData?.items?.slice(3, 8).map((item) => (
               <div
                 key={item.id}

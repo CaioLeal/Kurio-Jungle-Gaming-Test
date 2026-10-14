@@ -1,86 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Search, ShoppingCart, Heart, Home as HomeIcon, User, SlidersHorizontal, Scan } from 'lucide-react';
-
-interface NftItem {
-  id: string;
-  name: string;
-  price: string;
-  oldPrice?: string;
-  collection: string;
-  network: string;
-  badge?: string;
-  image: string;
-}
-
-const NFTS_MOCK: NftItem[] = [
-  {
-    id: '1',
-    name: 'Emerald Ape #042',
-    price: '1.19',
-    collection: 'Arte digital',
-    network: 'Ethereum',
-    image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: '2',
-    name: 'Sage Nomad #009',
-    price: '1.69',
-    collection: 'Arte 3D',
-    network: 'Ethereum',
-    image: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: '3',
-    name: 'Neon Vessel #552',
-    price: '1.99',
-    oldPrice: '2.29',
-    collection: 'Arte digital',
-    network: 'Polygon',
-    badge: 'RARO',
-    image: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: '4',
-    name: 'Cosmic Bloom #118',
-    price: '1.29',
-    collection: 'Colecionáveis',
-    network: 'Ethereum',
-    image: 'https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: '5',
-    name: 'Violet Nomad #314',
-    price: '1.39',
-    collection: 'Generativa',
-    network: 'Solana',
-    image: 'https://images.unsplash.com/photo-1618172193622-ae2d025f4032?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: '6',
-    name: 'Ivory Baron #088',
-    price: '1.79',
-    collection: 'Arte 3D',
-    network: 'Ethereum',
-    image: 'https://images.unsplash.com/photo-1642104704074-907c0698cbd9?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: '7',
-    name: 'Golden Beat #207',
-    price: '0.99',
-    collection: 'Música',
-    network: 'Polygon',
-    image: 'https://images.unsplash.com/photo-1614680376593-902f749f7ffc?w=600&auto=format&fit=crop&q=80',
-  },
-  {
-    id: '8',
-    name: 'Golden Signal #160',
-    price: '0.39',
-    collection: 'Jogos',
-    network: 'Solana',
-    image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80',
-  },
-];
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Search, Heart, ShoppingCart, SlidersHorizontal } from 'lucide-react';
+import { api, type NftItem } from '../lib/api';
+import { Layout } from '../components/Layout';
 
 const COLLECTIONS = [
   { name: 'Arte digital', count: 33 },
@@ -102,135 +25,251 @@ const NETWORKS = [
 
 const Home = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('Todos os NFTs');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCollection, setSelectedCollection] = useState<string | null>(null);
-  const [selectedNetwork, setSelectedNetwork] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const queryClient = useQueryClient();
 
-  const toggleFavorite = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
+  // Inicializa o estado a partir da URL para sobreviver ao F5 (Requisito Seção 3 do README)
+  const getInitialParam = (key: string, fallback: string) => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(key) || fallback;
   };
 
-  const filteredNfts = NFTS_MOCK.filter((nft) => {
-    const matchesSearch = nft.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCollection = !selectedCollection || nft.collection === selectedCollection;
-    const matchesNetwork = !selectedNetwork || nft.network === selectedNetwork;
-    return matchesSearch && matchesCollection && matchesNetwork;
+  const [searchQuery, setSearchQuery] = useState(() => getInitialParam('q', ''));
+  const [selectedCollection, setSelectedCollection] = useState(() => getInitialParam('collection', ''));
+  const [selectedNetwork, setSelectedNetwork] = useState(() => getInitialParam('network', ''));
+  const [maxPrice, setMaxPrice] = useState(() => getInitialParam('maxPrice', '12.30'));
+  const [activeTab, setActiveTab] = useState<'all' | 'new' | 'trending'>(
+    () => (getInitialParam('tab', 'all') as 'all' | 'new' | 'trending')
+  );
+  const [sortBy, setSortBy] = useState(() => getInitialParam('sort', 'recent'));
+  const [page, setPage] = useState(() => Number(getInitialParam('page', '1')) || 1);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  // Sincroniza alterações de filtro com a URL do navegador
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('q', searchQuery);
+    if (selectedCollection) params.set('collection', selectedCollection);
+    if (selectedNetwork) params.set('network', selectedNetwork);
+    if (maxPrice !== '12.30') params.set('maxPrice', maxPrice);
+    if (activeTab !== 'all') params.set('tab', activeTab);
+    if (sortBy !== 'recent') params.set('sort', sortBy);
+    if (page > 1) params.set('page', String(page));
+
+    const queryString = params.toString();
+    const newUrl = queryString ? `${window.location.pathname}?${queryString}` : window.location.pathname;
+    window.history.replaceState(null, '', newUrl);
+  }, [searchQuery, selectedCollection, selectedNetwork, maxPrice, activeTab, sortBy, page]);
+
+  const { data: nftData, isLoading } = useQuery<{
+    items: NftItem[];
+    totalPages: number;
+  }>({
+    queryKey: [
+      'nfts',
+      { searchQuery, selectedCollection, selectedNetwork, maxPrice, activeTab, sortBy, page },
+    ],
+    queryFn: async () =>
+      (
+        await api.get('/nfts', {
+          params: {
+            q: searchQuery,
+            collection: selectedCollection,
+            network: selectedNetwork,
+            maxPrice,
+            tab: activeTab,
+            sort: sortBy,
+            page,
+            pageSize: 9,
+          },
+        })
+      ).data,
   });
 
-  return (
-    <div className="min-h-screen bg-[#120B07] text-[#F5EFEA] font-mono pb-24 md:pb-0">
-      {/* Desktop Navbar */}
-      <header className="hidden md:flex items-center justify-between max-w-7xl mx-auto px-8 py-6 border-b border-[#261810]">
-        <div className="text-lg font-bold tracking-widest text-white cursor-pointer" onClick={() => navigate({ to: '/' })}>
-          KURIO
-        </div>
-        <nav className="flex items-center space-x-8 text-sm">
-          <button className="text-[#D98236] border-b-2 border-[#D98236] pb-1 font-medium">
-            Início
-          </button>
-          <button className="text-[#A3968C] hover:text-white transition-colors">Mercado</button>
-          <button className="text-[#A3968C] hover:text-white transition-colors">Criadores</button>
-          <button className="text-[#A3968C] hover:text-white transition-colors">Aprenda</button>
-        </nav>
-        <div className="flex items-center space-x-5">
-          <button aria-label="Buscar" className="text-[#F5EFEA] hover:text-[#D98236]">
-            <Search className="w-5 h-5" />
-          </button>
-          <button
-            aria-label="Carrinho"
-            onClick={() => navigate({ to: '/cart' })}
-            className="relative text-[#F5EFEA] hover:text-[#D98236]"
-          >
-            <ShoppingCart className="w-5 h-5" />
-            <span className="absolute -top-2 -right-2 bg-[#D98236] text-[#120B07] text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-              0
-            </span>
-          </button>
-          <button
-            onClick={() => navigate({ to: '/login' })}
-            className="px-4 py-1.5 bg-[#D98236] hover:bg-[#c2712b] text-[#120B07] font-bold text-xs rounded transition-colors"
-          >
-            [→ Entrar
-          </button>
-        </div>
-      </header>
+  const { data: favData } = useQuery<{ favorites: string[] }>({
+    queryKey: ['favorites'],
+    queryFn: async () => (await api.get('/favorites')).data,
+  });
 
-      {/* Mobile Top Search Bar */}
+  // Atualização otimista nos favoritos (Requisito Seção 4 do README)
+  const favoriteMutation = useMutation({
+    mutationFn: async (nftId: string) => (await api.post(`/favorites/${nftId}`)).data,
+    onMutate: async (nftId: string) => {
+      await queryClient.cancelQueries({ queryKey: ['favorites'] });
+      const previous = queryClient.getQueryData<{ favorites: string[] }>(['favorites']);
+      if (previous) {
+        const exists = previous.favorites.includes(nftId);
+        queryClient.setQueryData(['favorites'], {
+          favorites: exists
+            ? previous.favorites.filter((id) => id !== nftId)
+            : [...previous.favorites, nftId],
+        });
+      }
+      return { previous };
+    },
+    onError: (_err, _nftId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['favorites'], context.previous);
+      }
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['favorites'] }),
+  });
+
+  const quickCartMutation = useMutation({
+    mutationFn: async (nftId: string) =>
+      (await api.post('/cart/items', { nftId, edition: '1/50', quantity: 1 })).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart'] }),
+  });
+
+  const items = nftData?.items || [];
+  const favorites = favData?.favorites || [];
+
+  return (
+    <Layout>
+      {/* Mobile Search Bar */}
       <div className="md:hidden flex items-center gap-3 px-4 pt-6 pb-4">
         <div className="flex-1 flex items-center bg-[#1C120C] border border-[#2E1F16] rounded-xl px-4 py-3">
           <Search className="w-5 h-5 text-[#A3968C] mr-3" />
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
             placeholder="Explorar coleções"
             className="bg-transparent text-sm text-white placeholder-[#A3968C] focus:outline-none w-full"
           />
         </div>
         <button
           aria-label="Filtros"
-          className="p-3.5 bg-[#D98236] text-[#120B07] rounded-xl"
+          onClick={() => setMobileFiltersOpen((prev) => !prev)}
+          className="p-3.5 bg-[#D98236] text-[#120B07] rounded-xl cursor-pointer"
         >
           <SlidersHorizontal className="w-5 h-5" />
         </button>
       </div>
 
+      {/* Gaveta de Filtros Mobile */}
+      {mobileFiltersOpen && (
+        <div
+          role="dialog"
+          aria-label="Filtros do catálogo"
+          className="md:hidden mx-4 mb-4 bg-[#1C120C] border border-[#2E1F16] rounded-2xl p-5 space-y-5"
+        >
+          <div className="flex items-center justify-between border-b border-[#2E1F16] pb-2">
+            <h3 className="text-xs font-bold text-white">Filtrar por Coleção e Rede</h3>
+            <button
+              onClick={() => setMobileFiltersOpen(false)}
+              className="text-xs text-[#D98236] font-bold"
+            >
+              Fechar ✕
+            </button>
+          </div>
+
+          <div>
+            <p className="text-xs font-bold text-white mb-2">Coleções</p>
+            <div className="flex flex-wrap gap-2">
+              {COLLECTIONS.map((col) => {
+                const active = selectedCollection === col.name;
+                return (
+                  <button
+                    key={col.name}
+                    onClick={() => {
+                      setSelectedCollection(active ? '' : col.name);
+                      setPage(1);
+                    }}
+                    className={`px-2.5 py-1 rounded-full text-[11px] border ${
+                      active
+                        ? 'border-[#D98236] bg-[#D98236] text-[#120B07] font-bold'
+                        : 'border-[#2E1F16] text-[#A3968C]'
+                    }`}
+                  >
+                    {col.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-bold text-white mb-2">Rede</p>
+            <div className="flex flex-wrap gap-2">
+              {NETWORKS.map((net) => {
+                const active = selectedNetwork === net.name;
+                return (
+                  <button
+                    key={net.name}
+                    onClick={() => {
+                      setSelectedNetwork(active ? '' : net.name);
+                      setPage(1);
+                    }}
+                    className={`px-3 py-1 rounded-full text-[11px] border ${
+                      active
+                        ? 'border-[#D98236] bg-[#D98236] text-[#120B07] font-bold'
+                        : 'border-[#2E1F16] text-[#A3968C]'
+                    }`}
+                  >
+                    {net.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 md:px-8 pt-2 md:pt-10">
-        <div className="bg-[#1C120C] md:bg-transparent rounded-2xl p-6 md:p-0 border border-[#2E1F16] md:border-none grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+      <section className="max-w-7xl mx-auto px-4 md:px-8 pt-2 md:pt-8">
+        <div className="bg-[#1C120C] md:bg-[#170F0A] rounded-2xl p-6 md:p-10 border border-[#2E1F16] grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
           <div className="md:col-span-7 space-y-4">
-            <span className="text-xs text-[#A3968C] uppercase tracking-wider">
-              Bem-vindo à Kurio
-            </span>
-            <h1 className="text-2xl md:text-5xl font-bold text-white leading-tight">
+            <span className="text-xs text-[#F5EFEA] font-bold">Bem-vindo à Kurio</span>
+            <h1 className="text-2xl md:text-4xl font-bold text-white leading-tight">
               SEJA DONO DO FUTURO DA ARTE DIGITAL
             </h1>
-            <p className="text-xs md:text-sm text-[#A3968C] max-w-xl leading-relaxed">
-              Descubra NFTs selecionados de criadores emergentes e consagrados.
-              Colecione arte digital rara, apoie artistas e tenha uma parte da cultura da internet.
+            <p className="text-xs text-[#A3968C] max-w-xl leading-relaxed">
+              Descubra NFTs selecionados de criadores emergentes e consagrados. Colecione arte
+              digital rara, apoie artistas e tenha uma parte da cultura da internet.
             </p>
             <div className="pt-2">
-              <button className="px-6 py-2.5 bg-[#D98236] hover:bg-[#c2712b] text-[#120B07] font-bold text-xs rounded transition-colors">
+              <button
+                onClick={() => navigate({ to: '/nft/1' })}
+                className="px-6 py-2.5 bg-[#D98236] hover:bg-[#c2712b] text-[#120B07] font-bold text-xs rounded transition-colors cursor-pointer"
+              >
                 EXPLORAR
               </button>
             </div>
           </div>
           <div className="md:col-span-5 flex justify-center md:justify-end">
-            <img
-              src={NFTS_MOCK[0].image}
-              alt="Featured Ape NFT"
-              className="w-48 h-48 md:w-96 md:h-96 object-cover rounded-2xl border border-[#2E1F16]"
-            />
+            {items[0] && (
+              <img
+                src={items[0].image}
+                alt={items[0].name}
+                className="w-56 h-56 md:w-80 md:h-80 object-cover rounded-2xl border border-[#2E1F16]"
+              />
+            )}
           </div>
         </div>
       </section>
 
-      {/* Main Content: Sidebar + Catalog Grid */}
-      <main className="max-w-7xl mx-auto px-4 md:px-8 py-8 md:py-16 grid grid-cols-1 md:grid-cols-12 gap-8">
-        {/* Desktop Sidebar Filters */}
+      {/* Main Catalog Grid */}
+      <main className="max-w-7xl mx-auto px-4 md:px-8 py-10 grid grid-cols-1 md:grid-cols-12 gap-8">
+        {/* Sidebar Filters */}
         <aside className="hidden md:block md:col-span-3 space-y-6">
           <div className="bg-[#1C120C] border border-[#2E1F16] rounded-xl p-5 space-y-6">
-            {/* Coleções */}
             <div>
-              <h3 className="text-sm font-bold text-white mb-4">Coleções</h3>
+              <h3 className="text-xs font-bold text-white mb-4">Coleções</h3>
               <ul className="space-y-2.5 text-xs">
                 {COLLECTIONS.map((col) => {
-                  const isSelected = selectedCollection === col.name;
+                  const active = selectedCollection === col.name;
                   return (
                     <li key={col.name}>
                       <button
-                        onClick={() =>
-                          setSelectedCollection(isSelected ? null : col.name)
-                        }
-                        className={`w-full flex justify-between items-center transition-colors ${
-                          isSelected
-                            ? 'text-[#D98236] font-bold'
-                            : 'text-[#A3968C] hover:text-white'
+                        onClick={() => {
+                          setSelectedCollection(active ? '' : col.name);
+                          setPage(1);
+                        }}
+                        className={`w-full flex justify-between items-center cursor-pointer ${
+                          active ? 'text-[#D98236] font-bold' : 'text-[#A3968C] hover:text-white'
                         }`}
                       >
                         <span>{col.name}</span>
@@ -242,38 +281,42 @@ const Home = () => {
               </ul>
             </div>
 
-            {/* Faixa de preço */}
             <div className="border-t border-[#2E1F16] pt-5">
-              <h3 className="text-sm font-bold text-white mb-3">Faixa de preço</h3>
+              <h3 className="text-xs font-bold text-white mb-3">Faixa de preço</h3>
               <input
                 type="range"
-                min="0.02"
+                min="0.39"
                 max="12.30"
                 step="0.1"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
                 className="w-full accent-[#D98236]"
               />
-              <p className="text-[11px] text-[#A3968C] mt-2">Preço: 0,02 - 12,30 ETH</p>
-              <button className="mt-3 px-4 py-1.5 bg-[#D98236] text-[#120B07] font-bold text-xs rounded">
+              <p className="text-[11px] text-[#A3968C] mt-2">
+                Preço: 0,02 - {maxPrice.replace('.', ',')} ETH
+              </p>
+              <button
+                onClick={() => setPage(1)}
+                className="mt-3 px-4 py-1.5 bg-[#D98236] text-[#120B07] font-bold text-xs rounded cursor-pointer"
+              >
                 Aplicar
               </button>
             </div>
 
-            {/* Rede */}
             <div className="border-t border-[#2E1F16] pt-5">
-              <h3 className="text-sm font-bold text-white mb-4">Rede</h3>
+              <h3 className="text-xs font-bold text-white mb-4">Rede</h3>
               <ul className="space-y-2.5 text-xs">
                 {NETWORKS.map((net) => {
-                  const isSelected = selectedNetwork === net.name;
+                  const active = selectedNetwork === net.name;
                   return (
                     <li key={net.name}>
                       <button
-                        onClick={() =>
-                          setSelectedNetwork(isSelected ? null : net.name)
-                        }
-                        className={`w-full flex justify-between items-center ${
-                          isSelected
-                            ? 'text-[#D98236] font-bold'
-                            : 'text-[#A3968C] hover:text-white'
+                        onClick={() => {
+                          setSelectedNetwork(active ? '' : net.name);
+                          setPage(1);
+                        }}
+                        className={`w-full flex justify-between items-center cursor-pointer ${
+                          active ? 'text-[#D98236] font-bold' : 'text-[#A3968C] hover:text-white'
                         }`}
                       >
                         <span>{net.name}</span>
@@ -286,130 +329,268 @@ const Home = () => {
             </div>
           </div>
 
-          {/* NFT em Destaque Banner */}
-          <div className="bg-[#1C120C] border border-[#2E1F16] rounded-xl p-5">
-            <p className="text-xs font-bold text-[#D98236] uppercase">NFT EM DESTAQUE</p>
-            <p className="text-sm font-bold text-white mt-1 mb-4">OFERTA LIMITADA</p>
-            <img
-              src={NFTS_MOCK[1].image}
-              alt="Oferta Limitada"
-              className="w-full h-56 object-cover rounded-xl"
-            />
-          </div>
+          {items[1] && (
+            <div className="bg-[#1C120C] border border-[#2E1F16] rounded-xl p-5">
+              <p className="text-xs font-bold text-[#D98236]">NFT EM DESTAQUE</p>
+              <p className="text-sm font-bold text-white mt-1 mb-4">OFERTA LIMITADA</p>
+              <img
+                src={items[1].image}
+                alt="Destaque"
+                onClick={() => navigate({ to: `/nft/${items[1].id}` })}
+                className="w-full aspect-square object-cover rounded-xl cursor-pointer"
+              />
+            </div>
+          )}
         </aside>
 
         {/* Catalog Right Column */}
         <section className="md:col-span-9">
-          {/* Tabs & Sort */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#2E1F16] pb-3 mb-6">
-            <div className="flex items-center space-x-6 text-xs md:text-sm">
-              {['Todos os NFTs', 'Novos lançamentos', 'Em alta'].map((tab) => (
+            <div className="flex items-center space-x-6 text-xs">
+              {[
+                { id: 'all', label: 'Todos os NFTs' },
+                { id: 'new', label: 'Novos lançamentos' },
+                { id: 'trending', label: 'Em alta' },
+              ].map((t) => (
                 <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`pb-3 -mb-3.5 transition-colors ${
-                    activeTab === tab
+                  key={t.id}
+                  onClick={() => {
+                    setActiveTab(t.id as 'all' | 'new' | 'trending');
+                    setPage(1);
+                  }}
+                  className={`pb-3 -mb-3.5 cursor-pointer ${
+                    activeTab === t.id
                       ? 'text-[#D98236] border-b-2 border-[#D98236] font-bold'
                       : 'text-[#A3968C] hover:text-white'
                   }`}
                 >
-                  {tab}
+                  {t.label}
                 </button>
               ))}
             </div>
 
             <div className="hidden md:flex items-center text-xs text-[#A3968C]">
               <span>Ordenar por:</span>
-              <select className="ml-2 bg-transparent text-white font-medium focus:outline-none">
-                <option className="bg-[#1C120C]">Listados recentemente</option>
-                <option className="bg-[#1C120C]">Menor preço</option>
-                <option className="bg-[#1C120C]">Maior preço</option>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="ml-2 bg-transparent text-white font-bold focus:outline-none cursor-pointer"
+              >
+                <option value="recent" className="bg-[#1C120C]">
+                  Listados recentemente
+                </option>
+                <option value="price_asc" className="bg-[#1C120C]">
+                  Menor preço
+                </option>
+                <option value="price_desc" className="bg-[#1C120C]">
+                  Maior preço
+                </option>
               </select>
             </div>
           </div>
 
-          {/* NFT Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {filteredNfts.map((nft) => (
-              <div
-                key={nft.id}
-                onClick={() => navigate({ to: `/nft/${nft.id}` })}
-                className="group bg-[#1C120C] border border-[#2E1F16] rounded-2xl p-3 cursor-pointer hover:border-[#D98236] transition-all"
+          {isLoading ? (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <div
+                  key={n}
+                  className="bg-[#1C120C] border border-[#2E1F16] rounded-2xl p-3 h-72 animate-pulse"
+                />
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <div className="bg-[#1C120C] border border-[#2E1F16] rounded-2xl p-12 text-center space-y-3">
+              <p className="text-sm font-bold text-white">Nenhum NFT encontrado para este filtro</p>
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCollection('');
+                  setSelectedNetwork('');
+                  setMaxPrice('12.30');
+                }}
+                className="px-4 py-2 bg-[#D98236] text-[#120B07] font-bold text-xs rounded cursor-pointer"
               >
-                <div className="relative aspect-square rounded-xl overflow-hidden mb-3">
-                  {nft.badge && (
-                    <span className="absolute top-2 left-2 bg-[#D98236] text-[#120B07] text-[10px] font-bold px-2.5 py-1 rounded">
-                      {nft.badge}
-                    </span>
-                  )}
-                  <button
-                    onClick={(e) => toggleFavorite(nft.id, e)}
-                    aria-label="Favoritar"
-                    className="absolute top-2 right-2 w-8 h-8 rounded-full bg-[#120B07]/80 flex items-center justify-center text-[#D98236] hover:bg-[#120B07]"
-                  >
-                    <Heart
-                      className="w-4 h-4"
-                      fill={favorites.includes(nft.id) ? '#D98236' : 'none'}
+                Limpar filtros
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {items.map((nft) => (
+                <div
+                  key={nft.id}
+                  onClick={() => navigate({ to: `/nft/${nft.id}` })}
+                  className="group bg-[#1C120C] border border-[#2E1F16] rounded-2xl p-3 cursor-pointer hover:border-[#D98236] transition-all"
+                >
+                  <div className="relative aspect-square rounded-xl overflow-hidden mb-3">
+                    {nft.badge && (
+                      <span className="absolute top-2 left-2 bg-[#D98236] text-[#120B07] text-[10px] font-bold px-2.5 py-0.5 rounded z-10">
+                        {nft.badge}
+                      </span>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        favoriteMutation.mutate(nft.id);
+                      }}
+                      aria-label="Favoritar"
+                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-[#120B07]/80 flex items-center justify-center text-[#D98236] z-10 cursor-pointer"
+                    >
+                      <Heart
+                        className="w-3.5 h-3.5"
+                        fill={favorites.includes(nft.id) ? '#D98236' : 'none'}
+                      />
+                    </button>
+
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1.5 z-10">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          quickCartMutation.mutate(nft.id);
+                        }}
+                        aria-label="Adicionar rápido ao carrinho"
+                        className="w-7 h-7 rounded bg-[#120B07]/90 border border-[#2E1F16] text-white flex items-center justify-center hover:border-[#D98236]"
+                      >
+                        <ShoppingCart className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <img
+                      src={nft.image}
+                      alt={nft.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                  </button>
-                  <img
-                    src={nft.image}
-                    alt={nft.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
+                  </div>
+
+                  <h3 className="text-xs font-medium text-white truncate">{nft.name}</h3>
+                  <div className="mt-1 flex items-center gap-2 text-xs">
+                    <span className="font-bold text-[#D98236]">{nft.price} ETH</span>
+                    {nft.oldPrice && (
+                      <span className="text-[#A3968C] line-through text-[11px]">
+                        {nft.oldPrice} ETH
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <h3 className="text-xs md:text-sm font-medium text-white truncate">
-                  {nft.name}
-                </h3>
-                <div className="mt-1 flex items-center gap-2 text-xs md:text-sm">
-                  <span className="font-bold text-[#D98236]">{nft.price} ETH</span>
-                  {nft.oldPrice && (
-                    <span className="text-[#A3968C] line-through text-xs">
-                      {nft.oldPrice} ETH
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {/* Pagination */}
-          <div className="hidden md:flex justify-end items-center space-x-2 mt-10">
-            {[1, 2, 3, 4].map((page) => (
+          <div className="hidden md:flex justify-end items-center space-x-2 mt-8">
+            {[1, 2, 3, 4].map((p) => (
               <button
-                key={page}
-                className={`w-8 h-8 rounded text-xs font-bold ${
-                  page === 1
+                key={p}
+                onClick={() => setPage(p)}
+                className={`w-7 h-7 rounded text-xs font-bold cursor-pointer ${
+                  page === p
                     ? 'bg-[#D98236] text-[#120B07]'
                     : 'bg-[#1C120C] border border-[#2E1F16] text-[#A3968C] hover:text-white'
                 }`}
               >
-                {page}
+                {p}
               </button>
             ))}
           </div>
         </section>
       </main>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#1C120C] border-t border-[#2E1F16] px-6 py-3 flex items-center justify-between z-50">
-        <button onClick={() => navigate({ to: '/' })} className="text-[#D98236]">
-          <HomeIcon className="w-6 h-6" />
-        </button>
-        <button className="text-[#A3968C]">
-          <Heart className="w-6 h-6" />
-        </button>
-        <div className="-mt-8 bg-[#D98236] p-3.5 rounded-full text-[#120B07] shadow-lg">
-          <Scan className="w-6 h-6" />
+      {/* Banners Promocionais */}
+      <section className="max-w-7xl mx-auto px-4 md:px-8 py-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-[#1C120C] border border-[#2E1F16] rounded-xl p-5 flex items-center gap-5">
+          {items[0] && (
+            <img src={items[0].image} alt="Gênesis" className="w-32 h-32 rounded-xl object-cover shrink-0" />
+          )}
+          <div className="space-y-2 text-right ml-auto">
+            <h3 className="text-xs font-bold text-white">
+              Lançamentos gênesis de edição limitada
+            </h3>
+            <p className="text-[11px] text-[#A3968C]">
+              Colecione edições escassas diretamente dos criadores antes da revelação pública.
+            </p>
+            <button
+              onClick={() => navigate({ to: '/nft/1' })}
+              className="px-4 py-1.5 bg-[#D98236] text-[#120B07] font-bold text-xs rounded cursor-pointer"
+            >
+              Explorar →
+            </button>
+          </div>
         </div>
-        <button onClick={() => navigate({ to: '/cart' })} className="text-[#A3968C]">
-          <ShoppingCart className="w-6 h-6" />
-        </button>
-        <button onClick={() => navigate({ to: '/profile' })} className="text-[#A3968C]">
-          <User className="w-6 h-6" />
-        </button>
-      </nav>
-    </div>
+
+        <div className="bg-[#1C120C] border border-[#2E1F16] rounded-xl p-5 flex items-center gap-5">
+          {items[5] && (
+            <img src={items[5].image} alt="Arte digital" className="w-32 h-32 rounded-xl object-cover shrink-0" />
+          )}
+          <div className="space-y-2 text-right ml-auto">
+            <h3 className="text-xs font-bold text-white">
+              Arte digital selecionada e muito mais
+            </h3>
+            <p className="text-[11px] text-[#A3968C]">
+              Explore novos artistas, coleções verificadas e obras digitais que definem a cultura.
+            </p>
+            <button
+              onClick={() => navigate({ to: '/nft/6' })}
+              className="px-4 py-1.5 bg-[#D98236] text-[#120B07] font-bold text-xs rounded cursor-pointer"
+            >
+              Explorar →
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Diário da Cunhagem */}
+      <section className="max-w-7xl mx-auto px-4 md:px-8 pt-10">
+        <div className="text-center mb-8">
+          <h2 className="text-lg font-bold text-white">Diário da Cunhagem</h2>
+          <p className="text-xs text-[#A3968C] mt-1">
+            Histórias, guias e insights para colecionadores sobre o universo da propriedade digital.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[
+            {
+              date: '12 de setembro | Leitura de 6 min',
+              title: 'Como funciona a propriedade de NFTs',
+              desc: 'Aprenda a colecionar, negociar e verificar ativos digitais.',
+              img: items[5]?.image,
+            },
+            {
+              date: '13 de setembro | Leitura de 2 min',
+              title: '10 artistas digitais para acompanhar',
+              desc: 'Conheça criadores que moldam a cultura digital.',
+              img: items[0]?.image,
+            },
+            {
+              date: '15 de setembro | Leitura de 3 min',
+              title: 'Raridade, atributos e procedência',
+              desc: 'Entenda raridade, procedência, listas de acesso e utilidade.',
+              img: items[1]?.image,
+            },
+            {
+              date: '15 de setembro | Leitura de 2 min',
+              title: 'Como proteger sua carteira',
+              desc: 'Proteja sua carteira, seus ativos e sua identidade.',
+              img: items[6]?.image,
+            },
+          ].map((post, idx) => (
+            <article
+              key={idx}
+              className="bg-[#1C120C] border border-[#2E1F16] rounded-xl overflow-hidden flex flex-col"
+            >
+              {post.img && (
+                <img src={post.img} alt={post.title} className="w-full h-44 object-cover" />
+              )}
+              <div className="p-4 space-y-2 flex-1 flex flex-col">
+                <span className="text-[10px] text-[#A3968C]">{post.date}</span>
+                <h3 className="text-xs font-bold text-white">{post.title}</h3>
+                <p className="text-[11px] text-[#A3968C] flex-1">{post.desc}</p>
+                <span className="text-[11px] font-bold text-[#D98236] pt-1">Ler mais →</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </Layout>
   );
 };
 

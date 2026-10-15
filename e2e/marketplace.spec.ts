@@ -11,8 +11,11 @@ test.describe('KURIO NFT Marketplace - Fluxos E2E', () => {
     await expect(page.getByText('Emerald Ape #042').first()).toBeVisible();
   });
 
-  test('2. Carrinho, aplicação de cupom KURIO10 e Checkout até Confirmação', async ({ page }) => {
-    await page.goto('/cart');
+  test('2. Adicionar ao Carrinho, aplicar cupom KURIO10 e Checkout até Confirmação', async ({ page }) => {
+    await page.goto('/nft/1');
+    await page.locator('button:visible', { hasText: /COMPRAR/i }).first().click();
+
+    await expect(page).toHaveURL(/\/cart/);
     await expect(page.getByText('Emerald Ape #042').first()).toBeVisible();
 
     const couponInput = page.getByPlaceholder('Digite o código promocional...');
@@ -23,7 +26,7 @@ test.describe('KURIO NFT Marketplace - Fluxos E2E', () => {
     await page.getByRole('button', { name: /Conectar e finalizar/i }).click();
     await expect(page).toHaveURL(/\/payment/);
 
-    await page.getByRole('button', { name: /Confirmar compra/i }).first().click();
+    await page.locator('button:visible', { hasText: /Confirmar compra/i }).first().click();
     await expect(page).toHaveURL(/\/confirmation/);
     await expect(page.getByText('Seus NFTs agora estão na sua carteira')).toBeVisible();
   });

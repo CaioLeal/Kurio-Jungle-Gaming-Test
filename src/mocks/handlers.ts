@@ -279,7 +279,7 @@ interface DbState {
   quoteVersion: number;
 }
 
-const STORAGE_KEY = 'kurio_msw_db_v3';
+const STORAGE_KEY = 'kurio_msw_db_v4';
 
 function loadDb(): DbState {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -295,9 +295,7 @@ function loadDb(): DbState {
     currentUser: null, // Começa deslogado (visitante) conforme o layout do Figma!
     favoritesByUser: { usr_1: ['1'] },
     cart: [
-      { nftId: '1', edition: '1/50', quantity: 2 },
-      { nftId: '5', edition: '1/50', quantity: 6 },
-      { nftId: '6', edition: '1/50', quantity: 9 },
+      
     ],
     coupon: null,
     walletsByUser: {

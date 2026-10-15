@@ -1,5 +1,6 @@
 <div align="center">
-  <h1>🐵 KURIO — NFT Marketplace</h1>
+  <img width="487" height="97" alt="kurio" src="https://github.com/user-attachments/assets/379e9bcb-212d-4cb6-89a6-8242d38d552c" />
+
   <p><strong>Frontend Technical Challenge • Jungle Gaming</strong></p>
 </div>
 
@@ -25,7 +26,7 @@ The main technical highlights include:
 
 <div align="center">
 
-<img width="1440" alt="KURIO NFT Marketplace Preview" src="./Estilos%20Completos/In%C3%ADcio.png" />
+<img width="1920" height="1080" alt="kurio1" src="https://github.com/user-attachments/assets/5d11ad5d-8a19-46f4-8745-3aba14b0b81f" />
 
 </div>
 

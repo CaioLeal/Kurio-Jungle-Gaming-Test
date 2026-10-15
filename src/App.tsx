@@ -17,7 +17,15 @@ import Register from './pages/Register'
 import Profile from './pages/Profile'
 import Wallets from './pages/Wallets'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Evita refazer chamadas quando o Service Worker dorme ao trocar de aba
+      staleTime: 1000 * 60 * 5,    // Mantém os dados em cache frescos por 5 minutos
+      retry: 2,                    // Se falhar, tenta novamente
+    },
+  },
+})
 
 const rootRoute = createRootRoute({
   component: () => (

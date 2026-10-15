@@ -1,4 +1,4 @@
-import { useState, type ReactNode, type FormEvent } from 'react';
+import { useState, useEffect, type ReactNode, type FormEvent } from 'react';
 import { useNavigate, useLocation } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -11,8 +11,10 @@ import {
   X,
   Eye,
   EyeOff,
+  LogOut,
 } from 'lucide-react';
 import { api, type QuoteSummary } from '../lib/api';
+import { setupRealtimeSocket } from '../lib/socket';
 
 interface LayoutProps {
   children: ReactNode;
@@ -28,6 +30,7 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [realtimeNotice, setRealtimeNotice] = useState('');
 
   // Form states
   const [username, setUsername] = useState('');
@@ -35,9 +38,21 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
   const [password, setPassword] = useState('12345678');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // Conecta o Socket.IO em tempo real e libera listeners ao desmontar (Seção 7 do README)
+  useEffect(() => {
+    const socket = setupRealtimeSocket(queryClient, (msg) => {
+      setRealtimeNotice(msg);
+      setTimeout(() => setRealtimeNotice(''), 6000);
+    });
+    return () => {
+      socket.disconnect();
+    };
+  }, [queryClient]);
+
   const { data: sessionData } = useQuery({
     queryKey: ['session'],
     queryFn: async () => (await api.get('/session')).data,
+    staleTime: 0,
   });
 
   const { data: cartData } = useQuery<QuoteSummary>({
@@ -59,9 +74,11 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
         return (await api.post('/register', { username, email, password })).data;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      queryClient.setQueryData(['session'], data);
       queryClient.invalidateQueries({ queryKey: ['session'] });
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
       setAuthModalOpen(false);
       setAuthError('');
     },
@@ -69,6 +86,19 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
       setAuthError(
         err?.response?.data?.message || err?.message || 'Erro ao autenticar.'
       );
+    },
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => (await api.post('/logout')).data,
+    onSuccess: () => {
+      // Limpa dados privados em cache ao deslogar ou trocar de usuário (Seção 3 do README)
+      queryClient.setQueryData(['session'], { user: null });
+      queryClient.setQueryData(['favorites'], { favorites: [] });
+      queryClient.invalidateQueries({ queryKey: ['session'] });
+      queryClient.invalidateQueries({ queryKey: ['favorites'] });
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      navigate({ to: '/' });
     },
   });
 
@@ -83,8 +113,21 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
     location.pathname.startsWith('/cart') ||
     location.pathname.startsWith('/payment');
 
+  const currentUser = sessionData?.user;
+
   return (
     <div className="min-h-screen bg-[#120B07] text-[#F5EFEA] font-mono flex flex-col pb-20 md:pb-0">
+      {/* Alerta Acessível de Tempo Real (Socket.IO) */}
+      {realtimeNotice && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="bg-[#D98236] text-[#120B07] text-xs font-bold px-4 py-2 text-center"
+        >
+          ⚡ {realtimeNotice}
+        </div>
+      )}
+
       {/* Top Navbar Desktop */}
       <header className="hidden md:flex items-center justify-between max-w-7xl w-full mx-auto px-8 py-6 border-b border-[#261810]">
         <button
@@ -117,13 +160,21 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
           </button>
           <button
             onClick={() => navigate({ to: '/profile' })}
-            className="text-[#A3968C] hover:text-white pb-2 transition-colors cursor-pointer"
+            className={`pb-2 transition-colors cursor-pointer ${
+              location.pathname === '/profile'
+                ? 'text-[#D98236] border-b-2 border-[#D98236] font-bold'
+                : 'text-[#A3968C] hover:text-white'
+            }`}
           >
             Criadores
           </button>
           <button
             onClick={() => navigate({ to: '/wallets' })}
-            className="text-[#A3968C] hover:text-white pb-2 transition-colors cursor-pointer"
+            className={`pb-2 transition-colors cursor-pointer ${
+              location.pathname === '/wallets'
+                ? 'text-[#D98236] border-b-2 border-[#D98236] font-bold'
+                : 'text-[#A3968C] hover:text-white'
+            }`}
           >
             Aprenda
           </button>
@@ -149,22 +200,22 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
             </span>
           </button>
 
-          {sessionData?.user ? (
-            <div className="flex items-center gap-2">
+          {currentUser ? (
+            <div className="flex items-center gap-2.5">
               <button
                 onClick={() => navigate({ to: '/profile' })}
-                className="px-3 py-1.5 bg-[#1C120C] border border-[#2E1F16] hover:border-[#D98236] text-xs rounded text-[#F5EFEA] cursor-pointer"
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#1C120C] border border-[#D98236] text-xs rounded text-white font-bold cursor-pointer"
               >
-                {sessionData.user.displayName}
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                {currentUser.displayName}
               </button>
               <button
-                onClick={() => {
-                  setAuthMode('login');
-                  setAuthModalOpen(true);
-                }}
-                className="px-3.5 py-1.5 bg-[#D98236] hover:bg-[#c2712b] text-[#120B07] font-bold text-xs rounded transition-colors cursor-pointer"
+                onClick={() => logoutMutation.mutate()}
+                title="Sair da conta"
+                className="px-2.5 py-1.5 bg-[#261810] hover:bg-red-950/60 border border-[#3E271B] text-[#D98236] text-xs rounded flex items-center gap-1 cursor-pointer"
               >
-                [→ Entrar
+                <LogOut className="w-3.5 h-3.5" />
+                Sair
               </button>
             </div>
           ) : (
@@ -184,11 +235,10 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
       {/* Main Content */}
       <div className="flex-1">{children}</div>
 
-      {/* Footer Completo conforme Figma */}
+      {/* Footer Completo */}
       {!hideFooter && (
         <footer className="max-w-7xl w-full mx-auto px-4 md:px-8 pt-16 pb-10 mt-12">
           <div className="bg-[#1C120C] border border-[#2E1F16] rounded-xl overflow-hidden">
-            {/* Top 4 Columns */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 p-6 md:p-8 border-b border-[#2E1F16]">
               <div className="space-y-2 md:border-r md:border-[#2E1F16] md:pr-4">
                 <div className="w-10 h-10 rounded-full bg-[#D98236] text-[#120B07] font-bold flex items-center justify-center text-sm mb-3">
@@ -240,7 +290,6 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
               </div>
             </div>
 
-            {/* Middle Contact Bar */}
             <div className="bg-[#2B1B10] px-6 md:px-8 py-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-center text-xs border-b border-[#2E1F16]">
               <span className="font-bold tracking-widest text-white">KURIO</span>
               <span className="text-[11px] text-[#A3968C]">
@@ -250,7 +299,6 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
               <span className="text-[11px] text-[#F5EFEA]">+55 11 4002 8922</span>
             </div>
 
-            {/* Bottom Links */}
             <div className="p-6 md:p-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-xs">
               <div className="space-y-2">
                 <h5 className="font-bold text-white mb-3">Meu perfil</h5>
@@ -341,12 +389,15 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
             </span>
           )}
         </button>
-        <button onClick={() => navigate({ to: '/profile' })} className="text-[#A3968C]">
+        <button
+          onClick={() => navigate({ to: currentUser ? '/profile' : '/login' })}
+          className={currentUser ? 'text-emerald-400' : 'text-[#A3968C]'}
+        >
           <User className="w-5 h-5" />
         </button>
       </nav>
 
-      {/* Modal de Login / Cadastro fiel a Login.png e Cadastro.png */}
+      {/* Modal de Login / Cadastro */}
       {authModalOpen && (
         <div
           role="dialog"

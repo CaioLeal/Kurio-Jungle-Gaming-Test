@@ -1,43 +1,7 @@
 import { http, HttpResponse, delay } from 'msw';
 import type { NftItem, UserProfile, WalletInfo, OrderReceipt } from '../lib/api';
 
-// Gerador de arte SVG estilo Kurio Ape para garantir carregamento instantâneo e visual fiel
-const createApeSvg = (bg: string, fur: string, jacket: string, glasses: string, label: string) =>
-  `data:image/svg+xml;utf8,${encodeURIComponent(`
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
-    <defs>
-      <radialGradient id="g" cx="50%" cy="45%" r="60%">
-        <stop offset="0%" stop-color="#f5efea"/>
-        <stop offset="100%" stop-color="${bg}"/>
-      </radialGradient>
-    </defs>
-    <rect width="400" height="400" rx="24" fill="url(#g)"/>
-    <!-- Orelhas -->
-    <circle cx="115" cy="185" r="34" fill="${fur}"/>
-    <circle cx="115" cy="185" r="20" fill="#d2a68d"/>
-    <circle cx="285" cy="185" r="34" fill="${fur}"/>
-    <circle cx="285" cy="185" r="20" fill="#d2a68d"/>
-    <!-- Jaqueta / Corpo -->
-    <path d="M85 400 C90 295 310 295 315 400 Z" fill="${jacket}"/>
-    <path d="M160 315 L200 390 L240 315" fill="#f5efea"/>
-    <!-- Cabeça -->
-    <ellipse cx="200" cy="180" rx="82" ry="78" fill="${fur}"/>
-    <!-- Focinho -->
-    <ellipse cx="200" cy="212" rx="58" ry="44" fill="#d8b29c"/>
-    <path d="M168 228 Q200 242 232 224" stroke="#3b2314" stroke-width="5" fill="none" stroke-linecap="round"/>
-    <circle cx="188" cy="196" r="5" fill="#3b2314"/>
-    <circle cx="212" cy="196" r="5" fill="#3b2314"/>
-    <!-- Óculos -->
-    <circle cx="166" cy="162" r="26" fill="${glasses}" stroke="#e6c387" stroke-width="6"/>
-    <circle cx="234" cy="162" r="26" fill="${glasses}" stroke="#e6c387" stroke-width="6"/>
-    <line x1="192" y1="162" x2="208" y2="162" stroke="#e6c387" stroke-width="6"/>
-    <!-- Colar Esmeralda -->
-    <circle cx="200" cy="355" r="10" fill="#059669" stroke="#fbbf24" stroke-width="4"/>
-    <text x="200" y="388" font-family="monospace" font-size="11" fill="#ffffff" text-anchor="middle" opacity="0.45">${label}</text>
-  </svg>
-`)}`;
-
-const INITIAL_NFTS: NftItem[] = [
+const BASE_NFTS: NftItem[] = [
   {
     id: '1',
     tokenId: '#0042',
@@ -45,13 +9,8 @@ const INITIAL_NFTS: NftItem[] = [
     price: '1.19',
     collection: 'Arte digital',
     network: 'Ethereum',
-    image: createApeSvg('#cfd8c0', '#5a3825', '#0f5132', '#1f2937', 'Emerald Ape #042'),
-    gallery: [
-      createApeSvg('#cfd8c0', '#5a3825', '#0f5132', '#1f2937', 'Emerald Ape #042'),
-      createApeSvg('#d8cfc0', '#5a3825', '#14532d', '#111827', 'Emerald Ape #042 - Pose 2'),
-      createApeSvg('#c0d8cf', '#5a3825', '#064e3b', '#1f2937', 'Emerald Ape #042 - Pose 3'),
-      createApeSvg('#cfd8c0', '#4a2c1d', '#0f5132', '#374151', 'Emerald Ape #042 - Pose 4'),
-    ],
+    image: '/Image1.svg',
+    gallery: ['/Image1.svg', '/Image2.svg', '/Image3.svg', '/Image4.svg'],
     description:
       'Um colecionável digital finalizado à mão da coleção Kurio Editions, verificado na Ethereum, com arte desbloqueável e acesso para colecionadores.',
     attributes: ['Óculos', 'Esmeralda', 'Raro'],
@@ -72,8 +31,8 @@ const INITIAL_NFTS: NftItem[] = [
     price: '1.69',
     collection: 'Arte 3D',
     network: 'Ethereum',
-    image: createApeSvg('#d7e3d4', '#6b7280', '#5b4b8a', '#374151', 'Sage Nomad #009'),
-    gallery: [createApeSvg('#d7e3d4', '#6b7280', '#5b4b8a', '#374151', 'Sage Nomad #009')],
+    image: '/Image2.svg',
+    gallery: ['/Image2.svg', '/Image1.svg', '/Image3.svg', '/Image5.svg'],
     description:
       'Edição especial da série Nomad com capuz violeta e chapéu bucket, cunhado em alta resolução na rede Ethereum.',
     attributes: ['Bucket Hat', 'Hoodie Violeta', 'Gênesis'],
@@ -96,8 +55,8 @@ const INITIAL_NFTS: NftItem[] = [
     collection: 'Arte digital',
     network: 'Polygon',
     badge: 'RARO',
-    image: createApeSvg('#c9dcd6', '#27272a', '#e5dec9', '#09090b', 'Neon Vessel #552'),
-    gallery: [createApeSvg('#c9dcd6', '#27272a', '#e5dec9', '#09090b', 'Neon Vessel #552')],
+    image: '/Image3.svg',
+    gallery: ['/Image3.svg', '/Image1.svg', '/Image2.svg', '/Image4.svg'],
     description:
       'Peça rara com alfaiataria clara e gola alta verde-escura, acompanhada de metadados imutáveis no IPFS.',
     attributes: ['Alfaiataria', 'Brinco Ouro', 'Raro'],
@@ -118,8 +77,8 @@ const INITIAL_NFTS: NftItem[] = [
     price: '1.29',
     collection: 'Colecionáveis',
     network: 'Ethereum',
-    image: createApeSvg('#e2e8dd', '#71717a', '#4c1d95', '#18181b', 'Cosmic Bloom #118'),
-    gallery: [createApeSvg('#e2e8dd', '#71717a', '#4c1d95', '#18181b', 'Cosmic Bloom #118')],
+    image: '/Image1.svg',
+    gallery: ['/Image1.svg', '/Image2.svg', '/Image3.svg', '/Image5.svg'],
     description:
       'Colecionável verificado da coleção Kurio Apes com estética urbana e registro permanente de procedência.',
     attributes: ['Urbano', 'Violeta', 'Verificado'],
@@ -140,8 +99,8 @@ const INITIAL_NFTS: NftItem[] = [
     price: '1.39',
     collection: 'Generativa',
     network: 'Solana',
-    image: createApeSvg('#dce6df', '#64748b', '#581c87', '#0f172a', 'Violet Nomad #314'),
-    gallery: [createApeSvg('#dce6df', '#64748b', '#581c87', '#0f172a', 'Violet Nomad #314')],
+    image: '/Image3.svg',
+    gallery: ['/Image3.svg', '/Image1.svg', '/Image2.svg', '/Image5.svg'],
     description:
       'Obra generativa da série Nomad com traços raros e participação nos lançamentos exclusivos da comunidade.',
     attributes: ['Nomad', 'Capuz Roxo', 'Som'],
@@ -162,8 +121,8 @@ const INITIAL_NFTS: NftItem[] = [
     price: '1.79',
     collection: 'Arte 3D',
     network: 'Ethereum',
-    image: createApeSvg('#cde0d8', '#3f3f46', '#d6d3c4', '#18181b', 'Ivory Baron #088'),
-    gallery: [createApeSvg('#cde0d8', '#3f3f46', '#d6d3c4', '#18181b', 'Ivory Baron #088')],
+    image: '/Image5.svg',
+    gallery: ['/Image5.svg', '/Image4.svg', '/Image3.svg', '/Image1.svg'],
     description:
       'Ivory Baron combina modelagem 3D e acabamento clássico, garantindo direitos de exibição para o detentor.',
     attributes: ['Barão', 'Blazer Marfim', '3D'],
@@ -184,8 +143,8 @@ const INITIAL_NFTS: NftItem[] = [
     price: '0.99',
     collection: 'Música',
     network: 'Polygon',
-    image: createApeSvg('#e5dec9', '#d97706', '#e7e5e4', '#065f46', 'Golden Beat #207'),
-    gallery: [createApeSvg('#e5dec9', '#d97706', '#e7e5e4', '#065f46', 'Golden Beat #207')],
+    image: '/Image3.svg',
+    gallery: ['/Image3.svg', '/Image1.svg', '/Image2.svg', '/Image4.svg'],
     description:
       'Edição musical com headphones verdes e pelagem dourada. Inclui faixa de áudio exclusiva desbloqueável.',
     attributes: ['Headphones', 'Pelagem Dourada', 'Áudio'],
@@ -206,8 +165,8 @@ const INITIAL_NFTS: NftItem[] = [
     price: '0.59',
     collection: 'Fotografia',
     network: 'Ethereum',
-    image: createApeSvg('#e2dfd5', '#b45309', '#f5f5f4', '#047857', 'Golden Frequency #071'),
-    gallery: [createApeSvg('#e2dfd5', '#b45309', '#f5f5f4', '#047857', 'Golden Frequency #071')],
+    image: '/Image2.svg',
+    gallery: ['/Image2.svg', '/Image5.svg', '/Image3.svg', '/Image1.svg'],
     description:
       'Frequência dourada capturada para colecionadores que valorizam harmonia visual e raridade verificada.',
     attributes: ['Frequência', 'Ouro', 'Estúdio'],
@@ -228,8 +187,8 @@ const INITIAL_NFTS: NftItem[] = [
     price: '0.39',
     collection: 'Jogos',
     network: 'Solana',
-    image: createApeSvg('#ede8d8', '#f59e0b', '#fafaf9', '#064e3b', 'Golden Signal #160'),
-    gallery: [createApeSvg('#ede8d8', '#f59e0b', '#fafaf9', '#064e3b', 'Golden Signal #160')],
+    image: '/Image3.svg',
+    gallery: ['/Image3.svg', '/Image4.svg', '/Image2.svg', '/Image1.svg'],
     description:
       'Avatar pronto para interoperabilidade em experiências digitais e jogos parceiros do ecossistema Kurio.',
     attributes: ['Gamer', 'Headset Verde', 'Solana'],
@@ -245,6 +204,69 @@ const INITIAL_NFTS: NftItem[] = [
   },
 ];
 
+// Gera 36 NFTs distribuídos nas 4 páginas (9 por página) cobrindo todas as coleções e redes
+const EXTRA_NAMES = [
+  // Página 2 (IDs 10 a 18)
+  { name: 'CyberKong #402', price: '1.45', col: 'Assinaturas', net: 'Ethereum', img: '/Image1.svg', badge: 'NOVO' },
+  { name: 'Amber Guardian #109', price: '2.15', col: 'Utilidade', net: 'Polygon', img: '/Image5.svg' },
+  { name: 'Obsidian Ape #881', price: '1.85', col: 'Arte digital', net: 'Solana', img: '/Image3.svg', badge: 'RARO' },
+  { name: 'Solar Drift #212', price: '0.79', col: 'Fotografia', net: 'Ethereum', img: '/Image2.svg' },
+  { name: 'Velvet Echo #305', price: '1.12', col: 'Música', net: 'Polygon', img: '/Image5.svg' },
+  { name: 'Prism Walker #614', price: '2.40', col: 'Arte 3D', net: 'Ethereum', img: '/Image1.svg' },
+  { name: 'Dusk Voyager #099', price: '0.88', col: 'Colecionáveis', net: 'Solana', img: '/Image2.svg' },
+  { name: 'Neural Pulse #741', price: '1.55', col: 'Generativa', net: 'Polygon', img: '/Image3.svg' },
+  { name: 'Arcade Legend #512', price: '0.65', col: 'Jogos', net: 'Solana', img: '/Image5.svg' },
+  // Página 3 (IDs 19 a 27)
+  { name: 'Genesis Pass #003', price: '3.10', col: 'Assinaturas', net: 'Ethereum', img: '/Image2.svg', badge: 'VIP' },
+  { name: 'Vault Key #128', price: '1.95', col: 'Utilidade', net: 'Ethereum', img: '/Image1.svg' },
+  { name: 'Crimson Monarch #440', price: '2.60', col: 'Arte digital', net: 'Polygon', img: '/Image3.svg' },
+  { name: 'Shadow Lens #019', price: '0.92', col: 'Fotografia', net: 'Solana', img: '/Image5.svg' },
+  { name: 'Bassline Ape #901', price: '1.34', col: 'Música', net: 'Ethereum', img: '/Image1.svg' },
+  { name: 'Chrome Titan #332', price: '2.89', col: 'Arte 3D', net: 'Polygon', img: '/Image2.svg', badge: 'RARO' },
+  { name: 'Relic Hunter #277', price: '1.05', col: 'Colecionáveis', net: 'Ethereum', img: '/Image3.svg' },
+  { name: 'Fractal Mind #608', price: '1.49', col: 'Generativa', net: 'Solana', img: '/Image5.svg' },
+  { name: 'Pixel Striker #820', price: '0.49', col: 'Jogos', net: 'Polygon', img: '/Image1.svg' },
+  // Página 4 (IDs 28 a 36)
+  { name: 'Kurio Founder #001', price: '4.50', col: 'Assinaturas', net: 'Ethereum', img: '/Image1.svg', badge: 'GÊNESIS' },
+  { name: 'Node Access #770', price: '1.75', col: 'Utilidade', net: 'Solana', img: '/Image2.svg' },
+  { name: 'Bronze Sovereign #519', price: '1.62', col: 'Arte digital', net: 'Ethereum', img: '/Image5.svg' },
+  { name: 'Analog Soul #144', price: '0.84', col: 'Fotografia', net: 'Polygon', img: '/Image3.svg' },
+  { name: 'Synthwave Ape #390', price: '1.25', col: 'Música', net: 'Solana', img: '/Image2.svg' },
+  { name: 'Aether Sculpt #665', price: '2.20', col: 'Arte 3D', net: 'Ethereum', img: '/Image1.svg' },
+  { name: 'Token Prime #055', price: '1.15', col: 'Colecionáveis', net: 'Polygon', img: '/Image5.svg' },
+  { name: 'Chaos Matrix #992', price: '1.89', col: 'Generativa', net: 'Ethereum', img: '/Image3.svg' },
+  { name: 'Metaverse Pilot #410', price: '0.72', col: 'Jogos', net: 'Solana', img: '/Image2.svg' },
+] as const;
+
+const INITIAL_NFTS: NftItem[] = [
+  ...BASE_NFTS,
+  ...EXTRA_NAMES.map((item, idx): NftItem => {
+    const idNum = idx + 10;
+    return {
+      id: String(idNum),
+      tokenId: `#0${idNum * 11}`,
+      name: item.name,
+      price: item.price,
+      collection: item.col,
+      network: item.net as 'Ethereum' | 'Polygon' | 'Solana',
+      badge: 'badge' in item ? item.badge : undefined,
+      image: item.img,
+      gallery: [item.img, '/Image1.svg', '/Image2.svg', '/Image3.svg'],
+      description: `${item.name} faz parte da coleção oficial Kurio Editions na rede ${item.net}, com autenticidade verificada e benefícios exclusivos para colecionadores.`,
+      attributes: [item.col, item.net, 'Verificado'],
+      editions: [
+        { label: '1/1', available: 1, priceMultiplier: 2 },
+        { label: '1/10', available: 5, priceMultiplier: 1.3 },
+        { label: '1/50', available: 20, priceMultiplier: 1 },
+        { label: 'ABERTA', available: 50, priceMultiplier: 0.85 },
+      ],
+      reviewsCount: 8 + (idx % 25),
+      rating: 4.8,
+      version: 1,
+    };
+  }),
+];
+
 interface DbState {
   nfts: NftItem[];
   currentUser: UserProfile | null;
@@ -257,7 +279,7 @@ interface DbState {
   quoteVersion: number;
 }
 
-const STORAGE_KEY = 'kurio_msw_db_v1';
+const STORAGE_KEY = 'kurio_msw_db_v3';
 
 function loadDb(): DbState {
   const raw = localStorage.getItem(STORAGE_KEY);
@@ -270,16 +292,7 @@ function loadDb(): DbState {
   }
   const initial: DbState = {
     nfts: INITIAL_NFTS,
-    currentUser: {
-      id: 'usr_1',
-      displayName: 'Caio Colecionador',
-      username: 'caiokurio',
-      email: 'contato@email.com',
-      ensName: 'caio',
-      ensDomain: '.eth',
-      walletAlias: 'Vault Principal',
-      avatarUrl: INITIAL_NFTS[0].image,
-    },
+    currentUser: null, // Começa deslogado (visitante) conforme o layout do Figma!
     favoritesByUser: { usr_1: ['1'] },
     cart: [
       { nftId: '1', edition: '1/50', quantity: 2 },
@@ -292,17 +305,17 @@ function loadDb(): DbState {
         {
           id: 'wal_1',
           type: 'primary',
-          displayName: 'Caio Colecionador',
+          displayName: 'Colecionador Kurio',
           walletAlias: 'MetaMask Principal',
           network: 'Ethereum',
-          profileName: 'caiokurio',
+          profileName: 'kurio_collector',
           address: '0x742d35Cc6634C0532925a3b8D4C0532950532950',
-          secondaryAddress: 'caio.eth',
+          secondaryAddress: 'kurio.eth',
           walletProvider: 'MetaMask',
           referralCode: 'KURIO2026',
           email: 'contato@email.com',
           ensDomain: '.eth',
-          ensName: 'caio',
+          ensName: 'kurio',
         },
       ],
     },

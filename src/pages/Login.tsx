@@ -14,8 +14,8 @@ const Login = () => {
 
   const loginMutation = useMutation({
     mutationFn: async () => (await api.post('/login', { email, password })).data,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['session'] });
+    onSuccess: (data) => {
+      queryClient.setQueryData(['session'], data);
       queryClient.invalidateQueries({ queryKey: ['favorites'] });
       navigate({ to: '/' });
     },

@@ -21,8 +21,8 @@ const Register = () => {
       }
       return (await api.post('/register', { username, email, password })).data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['session'] });
+    onSuccess: (data) => {
+      queryClient.setQueryData(['session'], data);
       navigate({ to: '/' });
     },
     onError: (err: any) => {

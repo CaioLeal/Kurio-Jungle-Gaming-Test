@@ -5,6 +5,27 @@ export const api = axios.create({
   timeout: 8000,
 });
 
+// Garante que se o navegador suspender o Service Worker do MSW em segundo plano,
+// ele seja reativado automaticamente sem quebrar a tela com dados vazios
+api.interceptors.response.use(async (response) => {
+  if (
+    typeof response.data === 'string' &&
+    response.data.trim().startsWith('<!doctype html')
+  ) {
+    try {
+      const { worker } = await import('../mocks/browser');
+      await worker.start({
+        onUnhandledRequest: 'bypass',
+        serviceWorker: { url: '/mockServiceWorker.js' },
+      } as any);
+      return api.request(response.config);
+    } catch {
+      // fallback
+    }
+  }
+  return response;
+});
+
 export interface EditionStock {
   label: '1/1' | '1/10' | '1/50' | 'ABERTA';
   available: number;

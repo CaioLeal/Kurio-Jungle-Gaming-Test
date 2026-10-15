@@ -476,12 +476,15 @@ const Home = () => {
           )}
 
           {/* Pagination */}
-          <div className="hidden md:flex justify-end items-center space-x-2 mt-8">
+          <div className="flex justify-center md:justify-end items-center space-x-2 mt-8">
             {[1, 2, 3, 4].map((p) => (
               <button
                 key={p}
-                onClick={() => setPage(p)}
-                className={`w-7 h-7 rounded text-xs font-bold cursor-pointer ${
+                onClick={() => {
+                  setPage(p);
+                  window.scrollTo({ top: 450, behavior: 'smooth' });
+                }}
+                className={`w-7 h-7 rounded text-xs font-bold cursor-pointer transition-colors ${
                   page === p
                     ? 'bg-[#D98236] text-[#120B07]'
                     : 'bg-[#1C120C] border border-[#2E1F16] text-[#A3968C] hover:text-white'
@@ -490,6 +493,16 @@ const Home = () => {
                 {p}
               </button>
             ))}
+            <button
+              aria-label="Próxima página"
+              onClick={() => {
+                setPage((prev) => (prev < 4 ? prev + 1 : 1));
+                window.scrollTo({ top: 450, behavior: 'smooth' });
+              }}
+              className="w-7 h-7 rounded text-xs font-bold cursor-pointer bg-[#1C120C] border border-[#2E1F16] text-[#A3968C] hover:text-white flex items-center justify-center"
+            >
+              ›
+            </button>
           </div>
         </section>
       </main>

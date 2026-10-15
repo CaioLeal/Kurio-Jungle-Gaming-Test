@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test:e2e": "playwright test",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "lighthouse": "npx lighthouse http://localhost:5173 --output html --output json --output-path ./lighthouse-report"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

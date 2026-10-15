@@ -32,7 +32,7 @@ The main technical highlights include:
 ---
 
 ### 🌐 View the project:
-[View KURIO NFT Marketplace Online](https://SEU-LINK.vercel.app)
+[View KURIO NFT Marketplace Online](jungle-gaming-kurio.vercel.app)
 
 ---
 

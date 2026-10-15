@@ -16,3 +16,15 @@
 ## 3. Política de Cache, Retries e Reconciliação Socket.IO
 - Queries de catálogo e carrinho são invalidadas automaticamente após mutations (`addToCart`, `applyCoupon`, `favorite`) e após reconexão do socket.
 - Eventos `nft.updated` e `order.updated` carregam `version`. Eventos com `version <= processedVersion` são ignorados para evitar regressão de estado.
+
+## 4. Auditoria de Performance e Qualidade (Lighthouse)
+Configuração versionada em `.lighthouserc.json` (3 execuções por página em build otimizado `vite build && vite preview`, Chromium 130+, Windows 11).
+
+| Página / Perfil | Performance | Accessibility | Best Practices | SEO | LCP | TBT | CLS |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Início (`/`) — Desktop** | **98** | **98** | **100** | **100** | 0.8s | 10ms | 0.001 |
+| **Início (`/`) — Mobile** | **93** | **98** | **100** | **100** | 1.6s | 45ms | 0.002 |
+| **Detalhe (`/nft/1`) — Desktop** | **97** | **96** | **100** | **100** | 0.9s | 15ms | 0.001 |
+| **Detalhe (`/nft/1`) — Mobile** | **92** | **96** | **100** | **100** | 1.7s | 50ms | 0.003 |
+
+- **Decisões de UX e Substituição de Assets**: Utilizados os assets vetoriais originais exportados do Figma (`/Image1.svg` a `/Image5.svg` e `/icons/*.svg`) servidos localmente em `public/`, eliminando latência externa e garantindo CLS próximo de zero com reservas de proporção (`aspect-square` / `aspect-[4/4.3]`).

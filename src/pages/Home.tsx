@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Heart, ShoppingCart, SlidersHorizontal } from 'lucide-react';
+import { Heart, ShoppingCart} from 'lucide-react';
 import { api, type NftItem } from '../lib/api';
-import { Layout } from '../components/Layout';
+import { Layout } from '../components/Layout'
 
 const COLLECTIONS = [
   { name: 'Arte digital', count: 33 },
@@ -27,7 +27,6 @@ const Home = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Inicializa o estado a partir da URL para sobreviver ao F5 (Requisito Seção 3 do README)
   const getInitialParam = (key: string, fallback: string) => {
     const params = new URLSearchParams(window.location.search);
     return params.get(key) || fallback;
@@ -44,7 +43,6 @@ const Home = () => {
   const [page, setPage] = useState(() => Number(getInitialParam('page', '1')) || 1);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
-  // Sincroniza alterações de filtro com a URL do navegador
   useEffect(() => {
     const params = new URLSearchParams();
     if (searchQuery) params.set('q', searchQuery);
@@ -90,7 +88,6 @@ const Home = () => {
     queryFn: async () => (await api.get('/favorites')).data,
   });
 
-  // Atualização otimista nos favoritos (Requisito Seção 4 do README)
   const favoriteMutation = useMutation({
     mutationFn: async (nftId: string) => (await api.post(`/favorites/${nftId}`)).data,
     onMutate: async (nftId: string) => {
@@ -126,9 +123,9 @@ const Home = () => {
   return (
     <Layout>
       {/* Mobile Search Bar */}
-      <div className="md:hidden flex items-center gap-3 px-4 pt-6 pb-4">
-        <div className="flex-1 flex items-center bg-[#1C120C] border border-[#2E1F16] rounded-xl px-4 py-3">
-          <Search className="w-5 h-5 text-[#A3968C] mr-3" />
+      <div className="md:hidden flex items-center gap-3 px-4 pt-5 pb-3">
+        <div className="flex-1 flex items-center bg-[#21150E] rounded-2xl px-4 py-3.5">
+          <img src="/icons/SearchIcon.svg" alt="Buscar" className="w-5 h-5 mr-3 opacity-60" />
           <input
             type="text"
             value={searchQuery}
@@ -137,15 +134,15 @@ const Home = () => {
               setPage(1);
             }}
             placeholder="Explorar coleções"
-            className="bg-transparent text-sm text-white placeholder-[#A3968C] focus:outline-none w-full"
+            className="bg-transparent text-sm text-[#F5EFEA] placeholder-[#B08D74] focus:outline-none w-full"
           />
         </div>
         <button
           aria-label="Filtros"
           onClick={() => setMobileFiltersOpen((prev) => !prev)}
-          className="p-3.5 bg-[#D98236] text-[#120B07] rounded-xl cursor-pointer"
+          className="w-12 h-12 bg-[#C87D46] text-[#120B07] rounded-2xl flex items-center justify-center shrink-0 cursor-pointer"
         >
-          <SlidersHorizontal className="w-5 h-5" />
+          <img src="/icons/Filter.svg" alt="Filtros" className="w-5 h-5" />
         </button>
       </div>
 
@@ -218,42 +215,102 @@ const Home = () => {
         </div>
       )}
 
-      {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 md:px-8 pt-2 md:pt-8">
-        <div className="bg-[#1C120C] md:bg-[#170F0A] rounded-2xl p-6 md:p-10 border border-[#2E1F16] grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-          <div className="md:col-span-7 space-y-4">
-            <span className="text-xs text-[#F5EFEA] font-bold">Bem-vindo à Kurio</span>
-            <h1 className="text-2xl md:text-4xl font-bold text-white leading-tight">
+      {/* Hero Section (Mobile: Card com gradiente + miniatura sobreposta | Desktop: Limpo conforme Figma) */}
+      <section className="max-w-7xl mx-auto px-4 md:px-8 pt-2 md:pt-10 pb-2 md:pb-4">
+        {/* MOBILE HERO FIEL A image_d8e9c5.png */}
+        <div className="md:hidden relative overflow-hidden rounded-3xl bg-linear-to-br from-[#5A3921] via-[#331F11] to-[#21140B] p-5 shadow-lg">
+          {/* Círculos decorativos sutis ao fundo como no Figma */}
+          <div className="pointer-events-none absolute -top-12 -left-10 w-52 h-52 rounded-full bg-[#8A5A36]/20" />
+          <div className="pointer-events-none absolute -bottom-16 left-16 w-56 h-56 rounded-full bg-[#8A5A36]/15" />
+
+          <div className="relative z-10 grid grid-cols-12 gap-3 items-center">
+            <div className="col-span-7 space-y-2">
+              <span className="block text-[11px] text-[#F5EFEA]/90">
+                Bem-vindo à Kurio
+              </span>
+              <h2 className="text-[17px] font-bold text-white leading-snug tracking-tight">
+                SEJA DONO DA CULTURA DIGITAL
+              </h2>
+              <p className="text-[11px] text-[#D5C3B5] leading-relaxed">
+                Descubra NFTs selecionados de criadores do mundo todo.
+              </p>
+              <button
+                onClick={() => navigate({ to: '/nft/1' })}
+                className="inline-flex items-center gap-2 pt-1 text-xs font-bold text-[#E08B44] tracking-wide"
+              >
+                EXPLORAR <span>→</span>
+              </button>
+            </div>
+
+            <div className="col-span-5 relative flex justify-end">
+              <div className="relative w-32 h-36">
+                <img
+                  src={items[0]?.image || '/Image1.svg'}
+                  alt="Emerald Ape"
+                  className="w-full h-full object-cover rounded-2xl shadow-md"
+                />
+                {/* Miniatura sobreposta do segundo macaco no canto inferior esquerdo */}
+                <img
+                  src={items[1]?.image || '/Image2.svg'}
+                  alt="Sage Nomad"
+                  className="absolute -bottom-2 -left-3 w-12 h-12 object-cover rounded-xl border-2 border-[#331F11] shadow-lg"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* 3 pontinhos indicadores no Mobile */}
+          <div className="relative z-10 flex justify-center items-center gap-2 mt-4">
+            <span className="w-2 h-2 rounded-full bg-[#E08B44]" />
+            <span className="w-2 h-2 rounded-full bg-[#E08B44]/60" />
+            <span className="w-2 h-2 rounded-full bg-[#E08B44]/60" />
+          </div>
+        </div>
+
+        {/* DESKTOP HERO FIEL A image_d87d25.png */}
+        <div className="hidden md:grid md:grid-cols-12 gap-8 items-center">
+          <div className="md:col-span-7 space-y-5">
+            <span className="block text-sm text-[#F5EFEA] tracking-wider">
+              Bem-vindo à Kurio
+            </span>
+            <h1 className="text-5xl font-bold text-white leading-[1.15] tracking-tight max-w-xl">
               SEJA DONO DO FUTURO DA ARTE DIGITAL
             </h1>
-            <p className="text-xs text-[#A3968C] max-w-xl leading-relaxed">
+            <p className="text-sm text-[#A3968C] max-w-lg leading-relaxed">
               Descubra NFTs selecionados de criadores emergentes e consagrados. Colecione arte
               digital rara, apoie artistas e tenha uma parte da cultura da internet.
             </p>
             <div className="pt-2">
               <button
                 onClick={() => navigate({ to: '/nft/1' })}
-                className="px-6 py-2.5 bg-[#D98236] hover:bg-[#c2712b] text-[#120B07] font-bold text-xs rounded transition-colors cursor-pointer"
+                className="px-7 py-3 bg-[#D98236] hover:bg-[#c2712b] text-[#120B07] font-bold text-xs rounded transition-colors cursor-pointer uppercase tracking-wider"
               >
                 EXPLORAR
               </button>
             </div>
           </div>
-          <div className="md:col-span-5 flex justify-center md:justify-end">
+
+          <div className="md:col-span-5 flex justify-end">
             {items[0] && (
               <img
                 src={items[0].image}
                 alt={items[0].name}
-                className="w-56 h-56 md:w-80 md:h-80 object-cover rounded-2xl border border-[#2E1F16]"
+                className="w-105 h-105 object-cover rounded-3xl"
               />
             )}
+          </div>
+
+          <div className="md:col-span-12 flex justify-center items-center gap-2 -mt-6">
+            <span className="w-2 h-2 rounded-full bg-[#D98236]" />
+            <span className="w-2 h-2 rounded-full bg-[#D98236]/60" />
+            <span className="w-2 h-2 rounded-full bg-[#D98236]/60" />
           </div>
         </div>
       </section>
 
       {/* Main Catalog Grid */}
-      <main className="max-w-7xl mx-auto px-4 md:px-8 py-10 grid grid-cols-1 md:grid-cols-12 gap-8">
-        {/* Sidebar Filters */}
+      <main className="max-w-7xl mx-auto px-4 md:px-8 py-4 md:py-10 grid grid-cols-1 md:grid-cols-12 gap-8">
+        {/* Sidebar Filters (Desktop) */}
         <aside className="hidden md:block md:col-span-3 space-y-6">
           <div className="bg-[#1C120C] border border-[#2E1F16] rounded-xl p-5 space-y-6">
             <div>
@@ -345,8 +402,8 @@ const Home = () => {
 
         {/* Catalog Right Column */}
         <section className="md:col-span-9">
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#2E1F16] pb-3 mb-6">
-            <div className="flex items-center space-x-6 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-4 md:border-b md:border-[#2E1F16] pb-2 md:pb-3 mb-4 md:mb-6">
+            <div className="flex items-center justify-between w-full md:w-auto md:space-x-6 text-[13px] md:text-xs">
               {[
                 { id: 'all', label: 'Todos os NFTs' },
                 { id: 'new', label: 'Novos lançamentos' },
@@ -358,10 +415,10 @@ const Home = () => {
                     setActiveTab(t.id as 'all' | 'new' | 'trending');
                     setPage(1);
                   }}
-                  className={`pb-3 -mb-3.5 cursor-pointer ${
+                  className={`pb-1.5 md:pb-3 md:-mb-3.5 cursor-pointer ${
                     activeTab === t.id
                       ? 'text-[#D98236] border-b-2 border-[#D98236] font-bold'
-                      : 'text-[#A3968C] hover:text-white'
+                      : 'text-[#F5EFEA] md:text-[#A3968C] hover:text-white'
                   }`}
                 >
                   {t.label}
@@ -414,55 +471,79 @@ const Home = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-              {items.map((nft) => (
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2 md:gap-6 items-start">
+              {items.map((nft, index) => (
                 <div
                   key={nft.id}
                   onClick={() => navigate({ to: `/nft/${nft.id}` })}
-                  className="group bg-[#1C120C] border border-[#2E1F16] rounded-2xl p-3 cursor-pointer hover:border-[#D98236] transition-all"
+                  className={`group cursor-pointer transition-all md:bg-[#1C120C] md:border md:border-[#2E1F16] md:rounded-2xl md:p-3 md:hover:border-[#D98236] ${
+                    index % 2 === 1 ? 'mt-7 md:mt-0' : ''
+                  }`}
                 >
-                  <div className="relative aspect-square rounded-xl overflow-hidden mb-3">
-                    {nft.badge && (
-                      <span className="absolute top-2 left-2 bg-[#D98236] text-[#120B07] text-[10px] font-bold px-2.5 py-0.5 rounded z-10">
-                        {nft.badge}
-                      </span>
-                    )}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        favoriteMutation.mutate(nft.id);
-                      }}
-                      aria-label="Favoritar"
-                      className="absolute top-2 right-2 w-7 h-7 rounded-full bg-[#120B07]/80 flex items-center justify-center text-[#D98236] z-10 cursor-pointer"
-                    >
-                      <Heart
-                        className="w-3.5 h-3.5"
-                        fill={favorites.includes(nft.id) ? '#D98236' : 'none'}
-                      />
-                    </button>
-
-                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1.5 z-10">
+                  {/* Moldura da imagem (no Mobile só a imagem fica dentro do card escuro, igual a image_d8e9c5.png) */}
+                  <div className="bg-[#24160E] md:bg-transparent p-2.5 pb-3.5 md:p-0 rounded-2xl md:rounded-xl mb-2.5 md:mb-3">
+                    <div className="relative aspect-[4/4.3] md:aspect-square rounded-xl overflow-hidden">
+                      {nft.badge && (
+                        <span className="absolute top-0 left-0 md:top-2 md:left-2 bg-[#C87D46] md:bg-[#D98236] text-[#120B07] text-[11px] md:text-[10px] font-bold px-3 py-1 md:px-2.5 md:py-0.5 rounded-br-xl md:rounded z-10">
+                          {nft.badge}
+                        </span>
+                      )}
+                      {(index === 0 || favorites.includes(nft.id)) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            favoriteMutation.mutate(nft.id);
+                          }}
+                          aria-label="Favoritar"
+                          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-[#24160E]/90 flex items-center justify-center text-[#D98236] z-10 cursor-pointer"
+                        >
+                          <Heart
+                            className="w-3.5 h-3.5"
+                            fill={favorites.includes(nft.id) ? '#D98236' : 'none'}
+                          />
+                        </button>
+                      )}
+                      {/* No desktop mantém o botão de favoritar em todos os cards */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          quickCartMutation.mutate(nft.id);
+                          favoriteMutation.mutate(nft.id);
                         }}
-                        aria-label="Adicionar rápido ao carrinho"
-                        className="w-7 h-7 rounded bg-[#120B07]/90 border border-[#2E1F16] text-white flex items-center justify-center hover:border-[#D98236]"
+                        aria-label="Favoritar"
+                        className="hidden md:flex absolute top-2 right-2 w-7 h-7 rounded-full bg-[#120B07]/80 items-center justify-center text-[#D98236] z-10 cursor-pointer"
                       >
-                        <ShoppingCart className="w-3.5 h-3.5" />
+                        <Heart
+                          className="w-3.5 h-3.5"
+                          fill={favorites.includes(nft.id) ? '#D98236' : 'none'}
+                        />
                       </button>
-                    </div>
 
-                    <img
-                      src={nft.image}
-                      alt={nft.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center gap-1.5 z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            quickCartMutation.mutate(nft.id);
+                          }}
+                          aria-label="Adicionar rápido ao carrinho"
+                          className="w-7 h-7 rounded bg-[#120B07]/90 border border-[#2E1F16] text-white flex items-center justify-center hover:border-[#D98236]"
+                        >
+                          <ShoppingCart className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <img
+                        src={nft.image}
+                        alt={nft.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </div>
                   </div>
 
-                  <h3 className="text-xs font-medium text-white truncate">{nft.name}</h3>
-                  <div className="mt-1 flex items-center gap-2 text-xs">
+                  {/* Nome e Preço (Fora da caixa no Mobile e dentro no Desktop) */}
+                  <h3 className="text-[13px] md:text-xs font-medium text-[#F5EFEA] truncate px-1 md:px-0">
+                    {nft.name}
+                  </h3>
+                  <div className="mt-0.5 md:mt-1 flex items-center gap-2 text-[13px] md:text-xs px-1 md:px-0">
                     <span className="font-bold text-[#D98236]">{nft.price} ETH</span>
                     {nft.oldPrice && (
                       <span className="text-[#A3968C] line-through text-[11px]">
@@ -476,7 +557,7 @@ const Home = () => {
           )}
 
           {/* Pagination */}
-          <div className="flex justify-center md:justify-end items-center space-x-2 mt-8">
+          <div className="hidden md:flex justify-end items-center space-x-2 mt-8">
             {[1, 2, 3, 4].map((p) => (
               <button
                 key={p}
@@ -507,8 +588,8 @@ const Home = () => {
         </section>
       </main>
 
-      {/* Banners Promocionais */}
-      <section className="max-w-7xl mx-auto px-4 md:px-8 py-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Banners Promocionais (Desktop) */}
+      <section className="hidden md:grid max-w-7xl mx-auto px-8 py-6 grid-cols-2 gap-6">
         <div className="bg-[#1C120C] border border-[#2E1F16] rounded-xl p-5 flex items-center gap-5">
           {items[0] && (
             <img src={items[0].image} alt="Gênesis" className="w-32 h-32 rounded-xl object-cover shrink-0" />
@@ -550,8 +631,8 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Diário da Cunhagem */}
-      <section className="max-w-7xl mx-auto px-4 md:px-8 pt-10">
+      {/* Diário da Cunhagem (Desktop) */}
+      <section className="hidden md:block max-w-7xl mx-auto px-8 pt-10">
         <div className="text-center mb-8">
           <h2 className="text-lg font-bold text-white">Diário da Cunhagem</h2>
           <p className="text-xs text-[#A3968C] mt-1">
@@ -559,7 +640,7 @@ const Home = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-4 gap-5">
           {[
             {
               date: '12 de setembro | Leitura de 6 min',

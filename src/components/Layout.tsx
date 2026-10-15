@@ -2,7 +2,6 @@ import { useState, useEffect, type ReactNode, type FormEvent } from 'react';
 import { useNavigate, useLocation } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  Search,
   ShoppingCart,
   Heart,
   Home as HomeIcon,
@@ -11,7 +10,6 @@ import {
   X,
   Eye,
   EyeOff,
-  LogOut,
 } from 'lucide-react';
 import { api, type QuoteSummary } from '../lib/api';
 import { setupRealtimeSocket } from '../lib/socket';
@@ -115,6 +113,11 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
 
   const currentUser = sessionData?.user;
 
+  const hideMobileBottomNav =
+    location.pathname.startsWith('/nft') ||
+    location.pathname.startsWith('/cart') ||
+    location.pathname.startsWith('/payment');
+
   return (
     <div className="min-h-screen bg-[#120B07] text-[#F5EFEA] font-mono flex flex-col pb-20 md:pb-0">
       {/* Alerta Acessível de Tempo Real (Socket.IO) */}
@@ -184,17 +187,17 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
           <button
             aria-label="Buscar"
             onClick={() => navigate({ to: '/' })}
-            className="text-[#F5EFEA] hover:text-[#D98236] cursor-pointer"
+            className="text-[#F5EFEA] hover:opacity-80 cursor-pointer"
           >
-            <Search className="w-4 h-4" />
+            <img src="/icons/SearchIcon.svg" alt="Buscar" className="w-5 h-5" />
           </button>
 
           <button
             aria-label="Carrinho"
             onClick={() => navigate({ to: '/cart' })}
-            className="relative text-[#F5EFEA] hover:text-[#D98236] cursor-pointer"
+            className="relative text-[#F5EFEA] hover:opacity-80 cursor-pointer"
           >
-            <ShoppingCart className="w-4 h-4" />
+            <img src="/icons/Cart.svg" alt="Carrinho" className="w-5 h-5" />
             <span className="absolute -top-2 -right-2 bg-[#D98236] text-[#120B07] text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
               {totalCartItems}
             </span>
@@ -212,9 +215,9 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
               <button
                 onClick={() => logoutMutation.mutate()}
                 title="Sair da conta"
-                className="px-2.5 py-1.5 bg-[#261810] hover:bg-red-950/60 border border-[#3E271B] text-[#D98236] text-xs rounded flex items-center gap-1 cursor-pointer"
+                className="px-3 py-1.5 bg-[#D98236] hover:bg-[#c2712b] text-[#120B07] font-bold text-xs rounded flex items-center gap-1.5 cursor-pointer"
               >
-                <LogOut className="w-3.5 h-3.5" />
+                <img src="/icons/Logout.svg" alt="" className="w-4 h-4" />
                 Sair
               </button>
             </div>
@@ -224,9 +227,10 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
                 setAuthMode('login');
                 setAuthModalOpen(true);
               }}
-              className="px-4 py-1.5 bg-[#D98236] hover:bg-[#c2712b] text-[#120B07] font-bold text-xs rounded transition-colors cursor-pointer"
+              className="px-4 py-2 bg-[#D98236] hover:bg-[#c2712b] text-[#120B07] font-bold text-xs rounded flex items-center gap-2 transition-colors cursor-pointer"
             >
-              [→ Entrar
+              <img src="/icons/Logout.svg" alt="" className="w-4 h-4" />
+              Entrar
             </button>
           )}
         </div>
@@ -343,13 +347,18 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
 
               <div className="space-y-3">
                 <h5 className="font-bold text-white">Redes sociais</h5>
-                <div className="flex space-x-2 text-[11px]">
-                  {['f', 'ig', 'tw', 'in', 'yt'].map((s) => (
+                <div className="flex items-center space-x-2">
+                  {[
+                    { icon: '/icons/Facebook.svg', label: 'Facebook' },
+                    { icon: '/icons/Instagram.svg', label: 'Instagram' },
+                    { icon: '/icons/TwitterX.svg', label: 'Twitter' },
+                    { icon: '/icons/Linkedin.svg', label: 'LinkedIn' },
+                  ].map((s) => (
                     <span
-                      key={s}
-                      className="w-6 h-6 border border-[#D98236]/50 text-[#D98236] rounded flex items-center justify-center uppercase text-[10px]"
+                      key={s.label}
+                      className="w-7 h-7 border border-[#D98236]/40 rounded flex items-center justify-center hover:border-[#D98236] cursor-pointer"
                     >
-                      {s}
+                      <img src={s.icon} alt={s.label} className="w-3.5 h-3.5" />
                     </span>
                   ))}
                 </div>
@@ -368,34 +377,74 @@ export function Layout({ children, hideFooter = false }: LayoutProps) {
       )}
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#1C120C] border-t border-[#2E1F16] px-6 py-3 flex items-center justify-between z-40">
-        <button onClick={() => navigate({ to: '/' })} className="text-[#D98236]">
-          <HomeIcon className="w-5 h-5" />
-        </button>
-        <button onClick={() => navigate({ to: '/profile' })} className="text-[#A3968C]">
-          <Heart className="w-5 h-5" />
-        </button>
-        <button
-          onClick={() => navigate({ to: '/nft/1' })}
-          className="-mt-8 bg-[#D98236] p-3.5 rounded-full text-[#120B07] shadow-lg"
-        >
-          <Scan className="w-5 h-5" />
-        </button>
-        <button onClick={() => navigate({ to: '/cart' })} className="relative text-[#A3968C]">
-          <ShoppingCart className="w-5 h-5" />
-          {totalCartItems > 0 && (
-            <span className="absolute -top-1.5 -right-2 bg-[#D98236] text-[#120B07] text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-              {totalCartItems}
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => navigate({ to: currentUser ? '/profile' : '/login' })}
-          className={currentUser ? 'text-emerald-400' : 'text-[#A3968C]'}
-        >
-          <User className="w-5 h-5" />
-        </button>
-      </nav>
+      {!hideMobileBottomNav && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-20 pointer-events-none">
+          {/* Fundo SVG com a curva côncava no centro */}
+          <svg
+            viewBox="0 0 390 80"
+            preserveAspectRatio="none"
+            className="absolute inset-0 w-full h-full text-[#1D130D] drop-shadow-[0_-8px_20px_rgba(0,0,0,0.6)]"
+          >
+            <path
+              d="M0,24 Q0,0 28,0 L125,0 C148,0 155,44 195,44 C235,44 242,0 265,0 L362,0 Q390,0 390,24 L390,80 L0,80 Z"
+              fill="currentColor"
+            />
+          </svg>
+
+          {/* Botão Central Flutuante Translúcido */}
+          <div className="absolute left-1/2 -translate-x-1/2 -top-6 pointer-events-auto">
+            <button
+              onClick={() => navigate({ to: '/nft/1' })}
+              aria-label="Scanner"
+              className="w-15 h-15 rounded-full bg-[#D98943]/80 backdrop-blur-md border border-[#F5EFEA]/20 shadow-[0_6px_20px_rgba(217,130,54,0.45)] flex items-center justify-center text-white"
+            >
+              <Scan className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Ícones Laterais Sólidos */}
+          <div className="relative z-10 h-full px-8 flex items-center justify-between pointer-events-auto">
+            <div className="flex items-center gap-11">
+              <button
+                onClick={() => navigate({ to: '/' })}
+                aria-label="Início"
+                className="text-[#D98236]"
+              >
+                <HomeIcon className="w-5 h-5" fill="currentColor" />
+              </button>
+              <button
+                onClick={() => navigate({ to: '/profile' })}
+                aria-label="Favoritos"
+                className="text-[#C8B29E]"
+              >
+                <Heart className="w-5 h-5" fill="currentColor" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-11">
+              <button
+                onClick={() => navigate({ to: '/cart' })}
+                aria-label="Carrinho"
+                className="relative text-[#C8B29E]"
+              >
+                <ShoppingCart className="w-5 h-5" fill="currentColor" />
+                {totalCartItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-[#D98236] text-[#120B07] text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                    {totalCartItems}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => navigate({ to: currentUser ? '/profile' : '/login' })}
+                aria-label="Perfil"
+                className={currentUser ? 'text-[#D98236]' : 'text-[#C8B29E]'}
+              >
+                <User className="w-5 h-5" fill="currentColor" />
+              </button>
+            </div>
+          </div>
+        </nav>
+      )}
 
       {/* Modal de Login / Cadastro */}
       {authModalOpen && (
